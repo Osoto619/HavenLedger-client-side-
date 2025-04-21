@@ -1,0 +1,99 @@
+import requests
+
+# Heroku API URL
+API_URL ="https://havenledger-e39af0958184.herokuapp.com/api"
+
+# Local API URL
+#API_URL = "http://127.0.0.1:5000/api"  # Ensure this matches Flask server
+
+
+def fetch_room_details():
+    """Fetch room details from API"""
+    try:
+        response = requests.get(f"{API_URL}/get_room_details")
+        return response.json() if response.status_code == 200 else {}
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching room details: {e}")
+        return {}
+
+
+def fetch_room_occupancy():
+    """Fetch room occupancy from API"""
+    try:
+        response = requests.get(f"{API_URL}/get_room_occupancy")
+        return response.json() if response.status_code == 200 else {}
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching room occupancy: {e}")
+        return {}
+
+
+def fetch_facility_info():
+    """Fetch basic facility info (facility name, total beds)"""
+    try:
+        response = requests.get(f"{API_URL}/get_facilities")
+        return response.json() if response.status_code == 200 else {}
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching facility info: {e}")
+        return {}
+
+
+def send_add_facility(facility_name, total_beds):
+    """Send a request to add a new facility."""
+    try:
+        response = requests.post(f"{API_URL}/add_facility", json={
+            "facility_name": facility_name,
+            "total_beds": total_beds
+        })
+        return response.json() if response.status_code == 200 else {"error": f"Failed to add facility: {response.text}"}
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+
+def add_room_to_facility(facility_name, room_number):
+    """Send API request to add a room to a facility"""
+    try:
+        response = requests.post(f"{API_URL}/add_room", json={
+            "facility_name": facility_name,
+            "room_number": room_number
+        })
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Request failed: {e}"}
+
+
+def add_resident_to_room(facility_name, room_number, resident_name, monthly_payment, payment_due_date, move_in_date):
+    """Send API request to add a resident to a room"""
+    try:
+        response = requests.post(f"{API_URL}/add_resident", json={
+            "facility_name": facility_name,
+            "room_number": room_number,
+            "resident_name": resident_name,
+            "monthly_payment": monthly_payment,
+            "payment_due_date": payment_due_date,
+            "move_in_date": move_in_date
+        })
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Request failed: {e}"}
+
+
+def remove_resident_from_room(facility_name, room_number, resident_name):
+    """Send API request to mark a resident as inactive"""
+    try:
+        response = requests.post(f"{API_URL}/remove_resident", json={
+            "facility_name": facility_name,
+            "room_number": room_number,
+            "resident_name": resident_name
+        })
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Request failed: {e}"}
+
+
+def record_payment(payment_info):
+    """Send payment information to the backend API"""
+    try:
+        response = requests.post(f"{API_URL}/record_payment", json=payment_info)
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Request failed: {e}"}
