@@ -380,76 +380,6 @@ def show_facility_details(facility_name):
             break
     window.close()
 
-# # Function to show the facility overview
-# def show_facility_overview():
-#     # Dynamically compute facility summary
-#     facility_summary = {}
-
-#     for facility, rooms in room_details.items():
-#         total_vacant = sum(1 for r in rooms if r["status"] == "Vacant")
-#         total_partial = sum(1 for r in rooms if r["status"] == "Partially Occupied")
-#         total_occupied = sum(1 for r in rooms if r["status"] == "Occupied")
-        
-#         # Calculate total revenue by summing all resident payments in that facility
-#         total_revenue = sum(r["amount"] for r in room_occupancy.get(facility, []))
-
-#         # Count overdue and upcoming payments
-#         overdue_count = sum(1 for r in room_occupancy.get(facility, []) if r["status"] == "Overdue")
-#         upcoming_due_count = sum(1 for r in room_occupancy.get(facility, []) if r["status"] == "Upcoming Due")
-
-#         facility_summary[facility] = {
-#             "vacant": total_vacant,
-#             "partial": total_partial,
-#             "occupied": total_occupied,
-#             "monthly_revenue": total_revenue,
-#             "overdue": overdue_count,
-#             "upcoming_due": upcoming_due_count
-#         }
-#     layout = [
-#         [sg.Text("HavenLedger - Facility Overview", font=("Arial", 16, "bold"))],
-#         [sg.Text(f"Total Monthly Revenue Across Facilities: ${sum(f['monthly_revenue'] for f in facility_summary.values()):,}", font=("Arial", 14, "bold"))],
-#         [sg.Table(
-#             values=[
-#                 [
-#                     fac, 
-#                     facility_summary.get(fac, {}).get("vacant", 0),
-#                     f"${facility_summary.get(fac, {}).get('monthly_revenue', 0):,}",
-#                     facility_summary.get(fac, {}).get("overdue", 0),
-#                     facility_summary.get(fac, {}).get("upcoming_due", 0),
-#                     facility_info.get(fac, {}).get("total_beds", "N/A")  # Ensure facility exists in `facility_info`
-#                 ] 
-#                 for fac in facility_info.keys()  # Show all facilities, even if no rooms
-#             ],
-#             headings=["Facility Name", "Vacant", "Monthly Revenue", "Overdue", "Upcoming Due", "Total Beds"],
-#             auto_size_columns=False,
-#             justification='center',
-#             col_widths=[20, 10, 15, 10, 10, 10],
-#             key="-FACILITY-TABLE-",
-#             enable_events=True,
-#             num_rows=10
-#         )],
-#         [sg.Button("View Facility Details", size=(20, 1)), sg.Button("Add Facility", size=(15, 1)), sg.Button("Exit", size=(15, 1))]
-#     ]
-    
-#     window = sg.Window("HavenLedger - Facility Overview", layout, finalize=True)
-#     while True:
-#         event, values = window.read()
-#         if event in (sg.WINDOW_CLOSED, "Exit"):
-#             window.close()
-#             break
-#         elif event == "View Facility Details":
-#             selected_rows = values["-FACILITY-TABLE-"]
-#             if selected_rows:
-#                 selected_facility = list(facility_info.keys())[selected_rows[0]]
-#                 window.close()
-#                 show_facility_details(selected_facility)
-#                 show_facility_overview()
-#         elif event == "Add Facility":
-#             window.close()
-#             add_facility()
-#             show_facility_overview()
-#             break
-#     window.close()
 def show_facility_overview():
     # Dynamically compute facility summary
     facility_summary = {}
@@ -458,13 +388,14 @@ def show_facility_overview():
         total_vacant = sum(1 for r in rooms if r["status"] == "Vacant")
         total_partial = sum(1 for r in rooms if r["status"] == "Partially Occupied")
         total_occupied = sum(1 for r in rooms if r["status"] == "Occupied")
-        
-        # Calculate total revenue by summing all resident payments in that facility
-        total_revenue = sum(r["amount"] for r in room_occupancy.get(facility, []))
 
-        # Count overdue and upcoming payments
-        overdue_count = sum(1 for r in room_occupancy.get(facility, []) if r["status"] == "Overdue")
-        upcoming_due_count = sum(1 for r in room_occupancy.get(facility, []) if r["status"] == "Upcoming Due")
+        payments = room_occupancy.get(facility, [])
+
+        total_revenue = sum(r["amount"] for r in payments)
+        overdue_count = sum(1 for r in payments if r["status"] == "Overdue")
+        upcoming_due_count = sum(1 for r in payments if r["status"] == "Due Within 7 Days")
+        paid_count = sum(1 for r in payments if r["status"] == "Paid")
+        total_residents = len(payments)
 
         facility_summary[facility] = {
             "vacant": total_vacant,
@@ -472,36 +403,63 @@ def show_facility_overview():
             "occupied": total_occupied,
             "monthly_revenue": total_revenue,
             "overdue": overdue_count,
-            "upcoming_due": upcoming_due_count
+            "upcoming_due": upcoming_due_count,
+            "paid": paid_count,
+            "total_residents": total_residents
         }
-    
+
     layout = [
         [sg.Text("HavenLedger - Facility Overview", font=("Arial", 16, "bold"))],
         [sg.Text(f"Total Monthly Revenue Across Facilities: ${sum(f['monthly_revenue'] for f in facility_summary.values()):,}", font=("Arial", 14, "bold"))],
         [sg.Text("Resident Locator:"), sg.InputText(key="-RESIDENT-SEARCH-", size=(30, 1)), sg.Button("Search")],
-        [sg.Table(
+        # [sg.Table(
+        #     values=[
+        #         [
+        #             fac,
+        #             facility_summary[fac]["vacant"],
+        #             f"${facility_summary[fac]['monthly_revenue']:,}",
+        #             facility_summary[fac]["overdue"],
+        #             facility_summary[fac]["upcoming_due"],
+        #             facility_summary[fac]["paid"],
+        #             facility_summary[fac]["total_residents"],
+        #             facility_info.get(fac, {}).get("total_beds", "N/A")
+        #         ]
+        #         for fac in facility_info.keys()
+        #     ],
+        #     headings=["Facility Name", "Vacant", "Monthly Revenue", "Overdue", "Due Within 7 Days", "Paid", "Residents", "Total Beds"],
+        #     auto_size_columns=False,
+        #     justification='center',
+        #     col_widths=[20, 10, 15, 10, 18, 10, 10, 10],
+        #     key="-FACILITY-TABLE-",
+        #     enable_events=True,
+        #     num_rows=10
+        # )],
+            [sg.Table(
             values=[
                 [
-                    fac, 
-                    facility_summary.get(fac, {}).get("vacant", 0),
-                    f"${facility_summary.get(fac, {}).get('monthly_revenue', 0):,}",
-                    facility_summary.get(fac, {}).get("overdue", 0),
-                    facility_summary.get(fac, {}).get("upcoming_due", 0),
-                    facility_info.get(fac, {}).get("total_beds", "N/A")  # Ensure facility exists in `facility_info`
-                ] 
-                for fac in facility_info.keys()  # Show all facilities, even if no rooms
+                    fac,
+                    facility_summary[fac]["total_residents"],
+                    facility_summary[fac]["vacant"],
+                    f"${facility_summary[fac]['monthly_revenue']:,}",
+                    facility_summary[fac]["overdue"],
+                    facility_summary[fac]["upcoming_due"],
+                    facility_summary[fac]["paid"],
+                    facility_info.get(fac, {}).get("total_beds", "N/A")
+                ]
+                for fac in facility_info.keys()
             ],
-            headings=["Facility Name", "Vacant", "Monthly Revenue", "Overdue", "Upcoming Due", "Total Beds"],
+            headings=["Facility Name", "Residents", "Vacant", "Monthly Revenue", "Overdue", "Due Within 7 Days", "Paid", "Total Beds"],
             auto_size_columns=False,
             justification='center',
-            col_widths=[20, 10, 15, 10, 10, 10],
+            col_widths=[20, 10, 10, 15, 10, 18, 10, 10],
             key="-FACILITY-TABLE-",
             enable_events=True,
             num_rows=10
         )],
+
         [sg.Button("View Facility Details", size=(20, 1)), sg.Button("Add Facility", size=(15, 1)), sg.Button("Exit", size=(15, 1))]
     ]
-    
+
     window = sg.Window("HavenLedger - Facility Overview", layout, finalize=True)
     while True:
         event, values = window.read()
